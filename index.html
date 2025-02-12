@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <style>
+        /* Import font */
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900&display=swap');
+    :root {
+        --main-color: rgb(253, 168, 56);
+    }
+
+    body {
+        background-color: rgb(11, 11, 11);
+        -webkit-tap-highlight-color: transparent;
+        font-family: 'Noto Sans', sans-serif;
+        margin: 0;
+        padding: 0;
+        transition: filter 0.3s ease;
+    }
+    .gen-img {
+        width: 90%;
+        height: auto;
+        margin: 5%;
+        border-radius: 10px;
+        z-index: 0; /* Ensure image is below dropdown */
+        position: relative; /* For z-index to work */
+        transition: transform 0.3s ease; /* For smooth expansion */
+        cursor: pointer; /* Indicate image is clickable */
+    }
+    .gen-img.expanded {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        margin: 0;
+        object-fit: contain; /* Or cover, depending on desired behavior */
+        z-index: 10; /* Ensure it's on top of everything */
+        border-radius: 0;
+        background-color: rgba(0, 0, 0, 0.9); /* Optional background for expanded view */
+    }
+    .gen-button {
+        background-color: var(--main-color);
+        width: 90%;
+        border: none;
+        color: white;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 24px;
+        cursor: pointer;
+        border-radius: 10px;
+        z-index: 0; /* Ensure button is below dropdown */
+        cursor: pointer;
+        position: fixed; /* Fixed position relative to viewport */
+        bottom: 20px; /* Distance from the bottom */
+        left: 50%;
+        transform: translateX(-50%); /* Adjust to true center */
+    }
+    /* top right*/
+    #settingsthing, #historything {
+        width: 15%;
+        aspect-ratio: 1/1;
+        background: rgba(255, 255, 255, 0.8);
+        margin-top: 4%;
+        position: fixed;
+        top: 0;
+        right: 0;
+        margin-right: 4%;
+        border-radius: 5px;
+        cursor: pointer;
+        /* center text */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 24px;
+        font-weight: bold;
+        color: black;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        transition: transform 0.3s ease, opacity 0.3s ease; /* Added opacity transition */
+        z-index: 11; /* Ensure settings is above dropdown if needed */
+        opacity: 0.8; /* Default opacity */
+    }
+    #historything {
+        background: rgba(173, 216, 230, 0.8); /* Light blue for history */
+        right: 19%; /* Shifted to the left of settings */
+        margin-right: 4%;
+    }
+    #prompt-dropdown {
+        width: 94%;
+        background: rgb(44, 44, 44); /* Slightly transparent background */
+        margin-top: 3%;
+        margin-right: 3%;
+        margin-left: 3%;
+        border-radius: 5px;
+        cursor: pointer;
+        /* center text */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 24px;
+        font-weight: bold;
+        color: rgb(255, 255, 255);
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        transition: transform 0.3s ease;
+        position: relative; /* For positioning dropdown content */
+        z-index: 4; /* Higher z-index to be on top */
+        user-select: none; /* Prevent text selection on dropdown button itself */
+    }
+    /* Dropdown content styles */
+    #prompt-dropdown-content {
+        display: none; /* Hidden by default */
+        position: absolute; /* Positioned relative to prompt-dropdown */
+        top: 100%; /* Below the prompt-dropdown button */
+        left: 0;
+        width: 0; /* Start with width 0 for animation */
+        overflow: hidden; /* Hide content during animation */
+        background-color: #444e; /* Slightly different background for content */
+        border-radius: 0 0 5px 5px; /* Rounded bottom corners */
+        padding: 10px 0; /* No padding initially */
+        box-sizing: border-box; /* Include padding in width calculation */
+        flex-direction: column; /* Stack elements vertically */
+        gap: 10px; /* Spacing between elements in dropdown content */
+        z-index: 9; /* Below the prompt-dropdown button but above image */
+        transition: width 0.5s ease, padding 0.5s ease; /* Transition for width and padding */
+        display: flex; /* Use flexbox layout */
+
+    }
+    #prompt-dropdown-content.show {
+        display: flex; /* Show when 'show' class is added */
+        width: 100%; /* Animate to full width */
+        padding: 10px 10px; /* Animate padding in */
+    }
+    textarea {
+        resize: none;
+        width: calc(100% - 16px); /* Full width minus padding and border */
+        padding: 8px;
+        margin-left: 4px;
+        margin-right: 4px;
+        border: 1px solid #111;
+        border-radius: 4px;
+        font-size: 16px;
+        box-sizing: border-box; /* Ensure padding is inside the width */
+        background-color: #222;
+        color: rgb(218, 218, 218); /* Ensure text color is visible */
+    }
+
+    /* Autocomplete Suggestions Bar Style - Moved outside dropdown */
+    #autocomplete-suggestions {
+        display: none; /* Hidden by default, shown when dropdown is active */
+        position: fixed; /* Fixed position relative to viewport */
+        bottom: 0%; /* Align to the bottom of the viewport */
+        left: 0;
+        width: 100%;
+        background-color: #444e; /* Light background for the bar */
+        padding: 10px;
+        box-sizing: border-box;
+        flex-wrap: wrap;
+        gap: 5px;
+        justify-content: center; /* Center suggestions if needed */
+        z-index: 11; /* Above dropdown and other content */
+        border-top: 1px solid #111; /* Separator line at the top */
+    }
+    #autocomplete-suggestions.show {
+        display: flex; /* Show when 'show' class is added */
+    }
+
+    #autocomplete-suggestions button {
+        background-color: #181818;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 14px;
+        color: rgb(194, 194, 194);
+    }
+
+    #autocomplete-suggestions button:hover {
+        background-color: #4b4b4b;
+        color: rgb(224, 224, 224);
+    }
+
+
+    /* Modal overlay style */
+    #settings-modal, #history-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        justify-content: center;
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+        align-items: center;
+        overflow-y: auto;
+        z-index: 1000;
+    }
+
+    #settings-modal::-webkit-scrollbar, #history-modal::-webkit-scrollbar {
+        display: none;  /* Safari and Chrome */
+    }
+    /* Modal content (the settings window) */
+    .modal-content {
+        background: #0000;
+        color: #eee;
+        padding: 20px;
+        border-radius: 10px;
+        width: 60%;
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+        min-height: 80%;
+        max-height: 90%;
+        top: 5%;
+        position: fixed;
+        overflow-y: auto;
+    }
+    .modal-content::-webkit-scrollbar {
+        display: none;  /* Safari and Chrome */
+    }
+        /* History modal content (the history window) */
+    #history-content {
+        background: #2a2831; /* Darker background for history content */
+        color: #eee;
+        padding: 20px;
+        border-radius: 10px;
+        width: 80%; /* Wider for image display */
+        max-height: 90%;
+        top: 5%;
+        position: fixed;
+        overflow-y: auto;
+        display: flex; /* Enable flexbox for thumbnail grid */
+        flex-wrap: wrap; /* Allow wrapping to new lines */
+        justify-content: center; /* Center thumbnails horizontally */
+        gap: 10px; /* Spacing between thumbnails */
+    }
+    #history-content::-webkit-scrollbar {
+        display: none; /* Hide scrollbar in history content */
+    }
+    .history-image-thumb {
+        width: 100px; /* Adjust thumbnail size as needed */
+        height: auto;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+        object-fit: cover;
+    }
+
+    .history-image-thumb:hover {
+        transform: scale(1.05);
+    }
+    /* Blur effect when modal is open */
+    .blurred {
+        filter: blur(5px);
+        z-index: 20;
+    }
+    /* Settings groups (“islands”) */
+    .settings-group {
+        background: #2a2831;
+        margin-bottom: 20px;
+        border: 3px solid #222;
+        padding: 10px;
+        border-radius: 5px;
+    }
+    .settings-group h2 {
+        margin-top: 0;
+    }
+    .slidecontainer {
+        width: 100%;
+    }
+    .slider-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        margin-bottom: 5px;
+    }
+
+    .slider-container label {
+        font-size: 16px;
+    }
+
+    .slider-container input[type="number"] {
+        width: 50px;
+        text-align: center;
+        margin-left: 10px;
+        font-size: 16px;
+        padding: 3px;
+    }
+    .slider {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 100%;
+        height: 10px;
+        border-radius: 5px;
+        background: #d3d3d3;
+        border: 0px;
+        outline: none;
+        opacity: 0.7;
+        -webkit-transition: .2s;
+        transition: opacity .2s;
+    }
+
+    .slider:hover {
+        opacity: 1;
+    }
+
+    .slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
+        background: var(--main-color);
+        border: 0px;
+        cursor: pointer;
+    }
+
+    .slider::-moz-range-thumb {
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
+        border: 0px;
+        background: var(--main-color);
+        cursor: pointer;
+    }
+    input[type="number"] {
+        background-color: #0000;
+        color: #fff;
+        border: 0px;
+    }
+    /* Styles for the settings dropdown */
+.settings-dropdown {
+    position: relative; /* For positioning dropdown content */
+    display: inline-block;
+    width: 100%; /* Take full width of settings group */
+}
+
+.settings-dropdown-button {
+    background-color: #333; /* Darker background for button */
+    color: white;
+    padding: 10px;
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+    text-align: left; /* Align text to the left */
+    display: flex;
+    justify-content: space-between; /* Space between text and arrow */
+    align-items: center;
+    box-sizing: border-box; /* To include padding in width */
+}
+.settings-dropdown-button::after {
+    content: "\25BC"; /* Unicode down arrow */
+    font-size: 0.8em;
+}
+.settings-dropdown-button.open::after {
+    content: "\25B2"; /* Unicode up arrow when open */
+}
+
+
+.settings-dropdown-content {
+    display: none; /* Hidden by default */
+    position: absolute;
+    background-color: #444; /* Darker background for content */
+    min-width: 100%;
+    overflow: auto;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+    border-radius: 5px;
+    margin-top: 2px; /* Small gap between button and content */
+}
+
+.settings-dropdown-content.show {
+    display: block; /* Show when 'show' class is added */
+}
+
+.settings-dropdown-content button {
+    color: white;
+    padding: 10px 16px;
+    text-decoration: none;
+    display: block;
+    width: 100%;
+    border: none;
+    background-color: transparent; /* Make buttons transparent */
+    text-align: left;
+    cursor: pointer;
+    box-sizing: border-box; /* To include padding in width */
+    border-radius: 0; /* Remove button border-radius */
+}
+
+.settings-dropdown-content button:hover {
+    background-color: #555; /* Slightly lighter on hover */
+}
+    /* Fullscreen image container for history images */
+    #fullscreen-image-container {
+        display: none; /* Hidden by default */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.9);
+        z-index: 1010; /* Above all modals */
+        justify-content: center;
+        align-items: center;
+    }
+
+    #fullscreen-history-image {
+        max-width: 95vw;
+        max-height: 95vh;
+        object-fit: contain;
+        border-radius: 0;
+    }
+    #close-fullscreen-button {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background-color: rgba(255, 255, 255, 0.5);
+        color: black;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+
+        /* Close button for modals */
+    .modal-close-button {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: rgba(255, 255, 255, 0.5);
+        color: black;
+        border: none;
+        padding: 8px 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+
+        </style>
+        <title>SwarmUI Client</title>
+    </head>
+    <body onload="getSessionId()">
+
+        <div id="settings-modal">
+            <div class="modal-content">
+                <button class="modal-close-button" onclick="closeSettingsModal()">Close</button>
+                <div class="settings-group">
+                    <h2>general</h2>
+                    <div class="slider-container">
+                    <label for="steps">steps:</label>
+                    <input type="number" id="steps-value" min="1" max="100" value="25" style="width: 150px; margin-left: auto; margin-right: 10px;"></div>
+                    <div class="slidecontainer"><input type="range" id="steps" class="slider" name="steps" min="1" max="100" step="1" value="25"></div>
+                    <div class="slider-container">
+                    <label for="cfgscale">cfg:</label>
+                    <input type="number" id="cfgscale-value" min="0" max="10" value="6.5" step="0.1" style="width: 150px; margin-left: auto; margin-right: 10px;"></div>
+                    <div class="slidecontainer"><input type="range" id="cfgscale" class="slider" name="cfgscale" min="0" max="10" step="0.1" value="6.5"></div>
+                    <div class="slider-container">
+                    <label for="seed">seed:</label>
+                    <input type="number" id="seed-value" min="-1" max="2147483647" value="-1" step="1" style="width: 150px; margin-left: auto; margin-right: 10px;"></div>
+                    <div class="slidecontainer"><input type="range" id="seed" class="slider" name="seed" min="-1" max="2147483647" step="1" value="-1"></div>
+                </div>
+                <br>
+                <div class="settings-group">
+                    <h2>sampling</h2>
+                    <div class="settings-dropdown">
+                        <button onclick="toggleSettingsDropdownSam()" class="settings-dropdown-button-sam settings-dropdown-button">
+                            Sampler: <span id="selected-sampler">Euler</span>
+                        </button>
+                        <div id="settingsDropdownSam" class="settings-dropdown-content">
+                            <button onclick="sampler('euler')">Euler</button>
+                            <button onclick="sampler('euler_ancestral')">Euler Ancestral</button>
+                            <button onclick="sampler('euler_cfgpp')">Euler CFG++</button>
+                            <button onclick="sampler('euler_ancestral_cfgpp')">Euler Ancestral CFG++</button>
+                            <button onclick="sampler('dpmpp_2m')">DPM++ 2M</button>
+                            <button onclick="sampler('dpmpp_2s_ancestral')">DPM++ 2S Ancestral</button>
+                            <button onclick="sampler('dpmpp_2s_ancestral_cfgpp')">DPM++ 2S Ancestral CFG++</button>
+                            <button onclick="sampler('res_multistep')">Res Multistep</button>
+                            <button onclick="sampler('res_multistep_cfgpp')">Res Multistep CFG++</button>
+                        </div>
+                    </div>
+                    <br><br>
+                    <div class="settings-dropdown">
+                        <button onclick="toggleSettingsDropdownSched()" class="settings-dropdown-button-sched settings-dropdown-button">
+                            Scheduler: <span id="selected-scheduler">Normal</span>
+                        </button>
+                        <div id="settingsDropdownSched" class="settings-dropdown-content">
+                            <button onclick="scheduler('normal')">Normal</button>
+                            <button onclick="scheduler('karras')">Karras</button>
+                            <button onclick="scheduler('simple')">Simple</button>
+                            <button onclick="scheduler('sgm_uniform')">SGM Uniform</button>
+                            <button onclick="scheduler('ddim_uniform')">DDIM Uniform</button>
+                            <button onclick="scheduler('kl_optimal')">KL Optimal</button>
+                            <button onclick="scheduler('beta')">Beta</button>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="slider-container">
+                        <label for="width">width:</label>
+                        <input type="number" id="width-value" min="128" max="2048" value="1024" step="8" style="width: 150px; margin-left: auto; margin-right: 10px;"></div>
+                        <div class="slidecontainer"><input type="range" id="width" class="slider" name="width" min="128" max="2048" step="128" value="1024"></div>
+                        <br>
+                    <div class="slider-container">
+                        <label for="height">height:</label>
+                        <input type="number" id="height-value" min="128" max="2048" value="1024" step="8" style="width: 150px; margin-left: auto; margin-right: 10px;"></div>
+                        <div class="slidecontainer"><input type="range" id="height" class="slider" name="height" min="128" max="2048" step="128" value="1024"></div>
+                </div>
+                <br>
+                <div class="settings-group">
+                    <h2>extra</h2>
+                    <label for="api-url">backend url:</label>
+                    <input type="text" id="api-url" name="api-url" placeholder="http://[replace.me]">
+                    <br><br>
+                    <label for="model-name">model name:</label>
+                    <input type="text" id="model-name" name="model-name" placeholder="OfficialStableDiffusion/sd_xl_base_1.0">
+                    <br><br>
+                    <label for="sound-on-generate">play sound on generate:</label>
+                    <input type="checkbox" id="sound-on-generate" name="sound-on-generate">
+                    <br><br>
+                    <button type="button" onclick="refreshSessionId()">Refresh Session/URL</button>
+                </div>
+                <!-- You can add more settings groups as needed -->
+            </div>
+        </div>
+
+        <div id="history-modal">
+            <div id="history-content">
+                <button class="modal-close-button" onclick="closeHistoryModal()">Close</button>
+                <!-- Image thumbnails will be loaded here by JavaScript -->
+            </div>
+        </div>
+
+        <div id="fullscreen-image-container">
+            <button id="close-fullscreen-button" onclick="closeFullscreenImage()">Close</button>
+            <img id="fullscreen-history-image" src="" alt="Fullscreen Image">
+        </div>
+
+        <div id="main">
+            <div id="prompt-dropdown"> open prompt
+                <div id="prompt-dropdown-content">
+                    <textarea class="prompt-input" id="pos" placeholder="positive prompt" rows="6" autocomplete="off"></textarea>
+                    <textarea class="prompt-input" id="neg" placeholder="negative prompt" rows="2" autocomplete="off"></textarea>
+                </div>
+            </div>
+            <div id="prompt"></div>
+            <div id="settingsthing">⚙</div>
+            <div id="historything">🖼️</div>
+            <img src="zako.png" alt="generated image" class="gen-img" id="generatedImage">
+
+        </div>
+
+        <!-- Autocomplete Suggestions Bar - Moved outside dropdown, at the bottom -->
+        <div id="autocomplete-suggestions">
+            <!-- Autocomplete suggestions will be added here by JavaScript -->
+        </div>
+
+        <button id="generate" class="gen-button" onclick="generateImage()">Generate</button>
+        <script>
+            // Global session ID variable
+            let sessionId = null;
+            let generationQueueCount = 0; // Counter for queued generations
+            const generateButton = document.getElementById('generate'); // Get generate button for updates
+            let imageHistory = []; // Array to store image history
+            const historyModal = document.getElementById('history-modal');
+            const historyContent = document.getElementById('history-content');
+            const fullscreenImageContainer = document.getElementById('fullscreen-image-container');
+            const fullscreenHistoryImage = document.getElementById('fullscreen-history-image');
+            const settingsModal = document.getElementById('settings-modal');
+            const openSettingsButton = document.getElementById('settingsthing');
+            const openHistoryButton = document.getElementById('historything');
+
+            let lastClickX = 0;
+            let lastClickY = 0;
+            const settingsThing = document.getElementById('settingsthing');
+            const historyThing = document.getElementById('historything');
+            const maxDistForFullOpacity = 200; // Adjust this value as needed
+            const minOpacity = 0.3; // Minimum opacity when far away
+            const maxOpacity = 0.8; // Maximum opacity when close
+
+            function updateButtonOpacity() {
+                const settingsRect = settingsThing.getBoundingClientRect();
+                const historyRect = historyThing.getBoundingClientRect();
+
+                const settingsCenterX = settingsRect.left + settingsRect.width / 2;
+                const settingsCenterY = settingsRect.top + settingsRect.height / 2;
+                const historyCenterX = historyRect.left + historyRect.width / 2;
+                const historyCenterY = historyRect.top + historyRect.height / 2;
+
+                const distSettings = Math.sqrt((settingsCenterX - lastClickX)**2 + (settingsCenterY - lastClickY)**2);
+                const distHistory = Math.sqrt((historyCenterX - lastClickX)**2 + (historyCenterY - lastClickY)**2);
+
+                let opacitySettings = maxOpacity;
+                if (distSettings > maxDistForFullOpacity) {
+                    opacitySettings = minOpacity + (maxOpacity - minOpacity) * (maxDistForFullOpacity / distSettings);
+                    opacitySettings = Math.max(minOpacity, opacitySettings); // Ensure it doesn't go below minOpacity
+                }
+
+                let opacityHistory = maxOpacity;
+                if (distHistory > maxDistForFullOpacity) {
+                    opacityHistory = minOpacity + (maxOpacity - minOpacity) * (maxDistForFullOpacity / distHistory);
+                    opacityHistory = Math.max(minOpacity, opacityHistory); // Ensure it doesn't go below minOpacity
+                }
+
+                settingsThing.style.opacity = opacitySettings;
+                historyThing.style.opacity = opacityHistory;
+            }
+
+
+            document.addEventListener('mousedown', (event) => {
+                lastClickX = event.clientX;
+                lastClickY = event.clientY;
+                updateButtonOpacity();
+            });
+
+
+            function updateGenerateButtonText() {
+                if (generationQueueCount > 0) {
+                    generateButton.textContent = `Generate [${generationQueueCount}]`;
+                } else {
+                    generateButton.textContent = 'Generate';
+                }
+            }
+
+            function refreshSessionId() {
+                getSessionId();
+                saveSettings();
+            }
+            async function getSessionId() {
+                const apiUrl = document.getElementById('api-url').value;
+                if (apiUrl == 'http://[replace.me]') { return;}
+                try {
+                    const response = await fetch(`${apiUrl}/API/GetNewSession`, {
+                        method: 'POST',
+                        headers: {
+                            "ngrok-skip-browser-warning": "+- 0",
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({})
+                    });
+                    const data = await response.json();
+                    if (data && data.session_id) {
+                        sessionId = data.session_id;
+                        console.log("Session ID obtained:", sessionId);
+                    } else {
+                        console.error("Failed to get session ID:", data);
+                        alert("Failed to get session ID. Check console for details," + data);
+                    }
+                } catch (error) {
+                    console.error("Error fetching session ID:", error);
+                    alert("Error fetching session ID. Check console for details," + error);
+                }
+            }
+
+            function addToHistory(imageUrl) {
+                imageHistory.unshift(imageUrl); // Add to the beginning of the array
+                if (imageHistory.length > 50) {
+                    imageHistory.pop(); // Remove the oldest image if history exceeds 50
+                }
+                displayHistory(); // Update history display
+            }
+
+            function displayHistory() {
+                historyContent.innerHTML = '<button class="modal-close-button" onclick="closeHistoryModal()">Close</button>'; // Clear old thumbnails and keep close button
+                imageHistory.forEach(imageUrl => {
+                    const thumb = document.createElement('img');
+                    thumb.src = imageUrl;
+                    thumb.alt = 'History Image';
+                    thumb.classList.add('history-image-thumb');
+                    thumb.onclick = () => openFullscreenImage(imageUrl); // Open fullscreen on click
+                    historyContent.appendChild(thumb);
+                });
+            }
+
+            function openFullscreenImage(imageUrl) {
+                fullscreenHistoryImage.src = imageUrl;
+                fullscreenImageContainer.style.display = 'flex';
+                body.classList.add('blurred');
+            }
+
+            function closeFullscreenImage() {
+                fullscreenImageContainer.style.display = 'none';
+                body.classList.remove('blurred');
+            }
+
+
+            async function generateImage() {
+                if (!sessionId) {
+                    alert("No session ID. Please refresh the page or check console for session errors.");
+                    return;
+                }
+
+                generationQueueCount++; // Increment queue count
+                updateGenerateButtonText(); // Update button text
+
+                const apiUrl = document.getElementById('api-url').value;
+                const positivePrompt = document.getElementById('pos').value;
+                const negativePrompt = document.getElementById('neg').value;
+                const steps = document.getElementById('steps-value').value;
+                const cfgScale = document.getElementById('cfgscale-value').value;
+                const seed = document.getElementById('seed-value').value;
+                const sampler = document.getElementById('selected-sampler').textContent;
+                const scheduler = document.getElementById('selected-scheduler').textContent;
+                const width = document.getElementById('width-value').value;
+                const height = document.getElementById('height-value').value;
+                const model = document.getElementById('model-name').value;
+                const soundOnGenerate = document.getElementById('sound-on-generate').checked;
+
+                const payload = {
+                    "session_id": sessionId,
+                    "images": 1,
+                    "prompt": positivePrompt,
+                    "negativeprompt": negativePrompt,
+                    "steps": parseInt(steps),
+                    "cfgscale": parseFloat(cfgScale),
+                    "seed": parseInt(seed),
+                    "sampler": sampler, // Assuming API expects "sampler_name"
+                    "scheduler": scheduler,
+                    "width": parseInt(width),
+                    "height": parseInt(height),
+                    "model": model
+                };
+
+                try {
+                    const response = await fetch(`${apiUrl}/API/GenerateText2Image`, {
+                        method: 'POST',
+                        headers: {
+                            "ngrok-skip-browser-warning": "+- 0",
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await response.json();
+                    if (soundOnGenerate) {
+                        const audioContext = new AudioContext();
+                        const oscillator = audioContext.createOscillator();
+                        oscillator.frequency.value = 440; // 440 Hz (A4 note)
+                        oscillator.connect(audioContext.destination);
+                        oscillator.start();
+                        setTimeout(() => {
+                            oscillator.stop();
+                        }, 1000);
+                    }
+                    if (data && data.images && data.images.length > 0) {
+                        const imageUrl = `${apiUrl}/${data.images[0]}`; // Assuming the API returns relative paths
+                        document.getElementById('generatedImage').src = imageUrl;
+                        addToHistory(imageUrl); // Add to history after successful generation
+                        console.log("Image generated:", imageUrl);
+                    } else if (data && data.error) {
+                        console.error("Generation error:", data.error);
+                        alert("Image generation failed: " + data.error);
+                    } else {
+                        console.error("Unexpected API response:", data);
+                        alert("Image generation failed due to an unexpected API response. Check console.");
+                    }
+                } catch (error) {
+                    console.error("Error during API call:", error);
+                    alert("Error during API call. Check console for details.");
+                } finally {
+                    generationQueueCount--; // Decrement queue count when generation finishes (or fails)
+                    updateGenerateButtonText(); // Update button text
+                }
+            }
+
+
+            // Get elements
+            const body = document.getElementById('main');
+            const promptDropdown = document.getElementById('prompt-dropdown');
+            const promptDropdownContent = document.getElementById('prompt-dropdown-content');
+            const autocompleteSuggestionsDiv = document.getElementById('autocomplete-suggestions'); // Now outside dropdown
+            const promptInputs = document.querySelectorAll('.prompt-input'); // Select all prompt input boxes
+            const generatedImageElement = document.getElementById('generatedImage'); // Image element
+
+
+            const settingsDropdownContentSam = document.getElementById('settingsDropdownSam');
+            const settingsDropdownButtonSam = document.querySelector('.settings-dropdown-button-sam');
+            const selectedSamplerSpan = document.getElementById('selected-sampler');
+            const selectedSchedulerSpan = document.getElementById('selected-scheduler');
+            const settingsDropdownContentSched = document.getElementById('settingsDropdownSched');
+            const settingsDropdownButtonSched = document.querySelector('.settings-dropdown-button-sched');
+            // Autocomplete suggestion listlet autocompleteList = [];
+
+            // Image expansion functionality
+            let isImageExpanded = false;
+            generatedImageElement.addEventListener('click', () => {
+                isImageExpanded = !isImageExpanded;
+                generatedImageElement.classList.toggle('expanded', isImageExpanded);
+            });
+
+            // Function to load autocomplete tags from file (tags.list)
+            function loadAutocompleteTags() {
+                fetch('tags.list')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.text();
+                    })
+                    .then(text => {
+                        // Split the file content into an array by newline, trim spaces and filter out empty lines
+                        autocompleteList = text.split('\n').map(tag => tag.trim()).filter(tag => tag.length > 0);
+                        console.log('Autocomplete tags loaded:', autocompleteList);
+                    })
+                    .catch(error => {
+                        console.error("Failed to load autocomplete tags:", error);
+                    });
+            }
+
+            // Call loadAutocompleteTags on startup
+            loadAutocompleteTags();
+            let currentInput = null; // Track the currently focused input
+
+            // Function to toggle dropdown visibility
+            function togglePromptDropdown() {
+                const isShown = promptDropdownContent.classList.contains('show');
+                promptDropdownContent.classList.toggle('show');
+                autocompleteSuggestionsDiv.classList.toggle('show'); // Toggle autocomplete bar visibility
+
+                if (!isShown) { // If dropdown is being opened
+                    // If dropdown is opened, focus on the first input, and update suggestions
+                    if (promptInputs.length > 0) {
+                        promptInputs[0].focus();
+                        currentInput = promptInputs[0]; // Set current input
+                        updateAutocompleteSuggestions(''); // Initial suggestions (all or based on empty input logic)
+                    }
+                }
+            }
+
+            // Event listener to toggle prompt dropdown
+            promptDropdown.addEventListener('click', (event) => {
+                if (event.target === promptDropdown) { // Only toggle if clicking the dropdown button itself, not children
+                    togglePromptDropdown();
+                }
+            });
+
+            // Close dropdown if clicked outside of dropdown or button
+            window.addEventListener('click', function(event) {
+                if (!promptDropdown.contains(event.target) && !promptDropdownContent.contains(event.target)) {
+                    if (!autocompleteSuggestionsDiv.contains(event.target)) {
+                        promptDropdownContent.classList.remove('show');
+                        autocompleteSuggestionsDiv.classList.remove('show'); // Also hide autocomplete bar
+                    }
+                    updateAutocompleteSuggestions(''); // make sure to clear suggestions
+                }
+            });
+
+            // Function to update autocomplete suggestions
+            function updateAutocompleteSuggestions(inputText) {
+                autocompleteSuggestionsDiv.innerHTML = ''; // Clear previous suggestions
+                const last = inputText.toLowerCase().split(','); // get list
+
+                const filteredSuggestions = autocompleteList.filter(suggestion =>
+                    suggestion.toLowerCase().startsWith(last[last.length - 1].trim())
+                );
+
+                if (last[last.length - 1].trim().length === 0) {
+                    return
+                }
+                let maxCount = 25; // Limit to 10 suggestions
+                console.log(maxCount);
+                let i = 0;
+                filteredSuggestions.forEach(suggestion => {
+                    if (i >= maxCount) {
+                        return;
+                    }
+                    i++;
+                    const suggestionButton = document.createElement('button');
+                    suggestionButton.textContent = suggestion;
+                    suggestionButton.addEventListener('click', (e) => {
+                        e.preventDefault(); // Prevent default button behavior
+                        if (currentInput) {
+                            let cv = currentInput.value;
+                            let cvl = cv.split(',');
+                            console.log(cvl);
+                            suggestion = suggestion.replaceAll('_', ' ');
+                            suggestion = suggestion.replaceAll('(', '\\(');
+                            suggestion = suggestion.replaceAll(')', '\\)');
+                            cvl[cvl.length - 1] = " " +suggestion; // Fix array index
+                            currentInput.value = (cvl.join(',') + ', ').trim(); // Add comma and space for next tag
+                            currentInput.focus(); // Keep focus on input
+                            autocompleteSuggestionsDiv.classList.add('show'); // Keep suggestions visible
+                        }
+                    });
+                    autocompleteSuggestionsDiv.appendChild(suggestionButton);
+
+                });
+            }
+
+            // Add input event listener to each prompt input
+            promptInputs.forEach(input => {
+                input.addEventListener('input', (event) => {
+                    currentInput = input; // Update current input when typing
+                    updateAutocompleteSuggestions(event.target.value);
+                });
+                input.addEventListener('focus', () => {
+                    currentInput = input; // Update current input when focused
+                    //updateAutocompleteSuggestions(input.value); // Update suggestions based on current input value
+                });
+            });
+
+
+            // Open the settings modal and load any saved settings
+            function openSettingsModal() {
+                closeHistoryModal(); // Ensure history modal is closed
+                loadSettings();
+                settingsModal.style.display = 'flex';
+                body.classList.add('blurred');
+            }
+
+            // Close the settings modal and save settings
+            function closeSettingsModal() {
+                settingsModal.style.display = 'none';
+                body.classList.remove('blurred');
+                saveSettings();
+            }
+
+            // Open the history modal and display history
+            function openHistoryModal() {
+                closeSettingsModal(); // Ensure settings modal is closed
+                historyModal.style.display = 'flex';
+                displayHistory();
+                body.classList.add('blurred');
+            }
+
+            // Close the history modal
+            function closeHistoryModal() {
+                historyModal.style.display = 'none';
+                body.classList.remove('blurred');
+            }
+
+
+            // Save settings from inputs into localStorage
+            function saveSettings() {
+                const settings = {};
+                const inputs = settingsModal.querySelectorAll('input');
+                inputs.forEach(input => {
+                    if (input.type === 'checkbox') {
+                        settings[input.id] = input.checked;
+                    } else {
+                        settings[input.id] = input.value;
+                    }
+                });
+                // Save dropdown selection
+                settings['sampler'] = selectedSamplerSpan.textContent;
+                settings['scheduler'] = selectedSchedulerSpan.textContent;
+                localStorage.setItem('userSettings', JSON.stringify(settings));
+                console.log('Settings saved:', settings);
+            }
+
+            // Load settings from localStorage into inputs
+            function loadSettings() {
+                const savedSettings = localStorage.getItem('userSettings');
+                if (savedSettings) {
+                    const settings = JSON.parse(savedSettings);
+                    const inputs = settingsModal.querySelectorAll('input');
+                    inputs.forEach(input => {
+                        if (settings.hasOwnProperty(input.id)) {
+                            if (input.type === 'checkbox') {
+                                input.checked = settings[input.id];
+                            } else {
+                                input.value = settings[input.id];
+                            }
+                        }
+                    });
+                    // Load dropdown selection
+                    if (settings.hasOwnProperty('sampler')) {
+                        sampler(settings['sampler']);
+                    }
+                    if (settings.hasOwnProperty('scheduler')) {
+                        scheduler(settings['scheduler']);
+                    }
+                }
+            }
+
+            // Event listener to open the settings modal when clicking the "Open Settings" button
+            openSettingsButton.addEventListener('click', openSettingsModal);
+            // Event listener to open the history modal when clicking the "Open History" button
+            openHistoryButton.addEventListener('click', openHistoryModal);
+
+
+            // Close modal when clicking outside the modal content
+            settingsModal.addEventListener('click', (event) => {
+                if (event.target === settingsModal) {
+                    closeSettingsModal();
+                }
+            });
+            historyModal.addEventListener('click', (event) => {
+                if (event.target === historyModal) {
+                    closeHistoryModal();
+                }
+            });
+            fullscreenImageContainer.addEventListener('click', (event) => {
+                if (event.target === fullscreenImageContainer) {
+                    closeFullscreenImage();
+                }
+            });
+
+
+            // Allow closing the modal with the Escape key
+            document.addEventListener('keydown', (event) => {
+                if (event.key === "Escape" && settingsModal.style.display === 'flex') {
+                    closeSettingsModal();
+                }
+                if (event.key === "Escape" && historyModal.style.display === 'flex') {
+                    closeHistoryModal();
+                }
+                if (event.key === "Escape" && fullscreenImageContainer.style.display === 'flex') {
+                    closeFullscreenImage();
+                }
+            });
+
+            function syncSliderWithInput(sliderId, numberId) {
+                const slider = document.getElementById(sliderId);
+                const numberInput = document.getElementById(numberId);
+
+                // Update number input when slider changes
+                slider.addEventListener('input', () => {
+                    numberInput.value = slider.value;
+                    saveSettings(); // Save changes automatically
+                });
+
+                // Update slider when number input changes
+                numberInput.addEventListener('input', () => {
+                    let value = Number(numberInput.value);
+
+                    // Ensure the value stays within range
+                    if (value < slider.min) value = slider.min;
+                    if (value > slider.max) value = slider.max;
+
+                    slider.value = value;
+                    numberInput.value = value; // Prevent invalid input
+                    saveSettings(); // Save changes automatically
+                });
+            }
+
+            // Initialize sync for each slider-number pair
+            syncSliderWithInput('steps', 'steps-value');
+            syncSliderWithInput('cfgscale', 'cfgscale-value');
+            syncSliderWithInput('seed', 'seed-value');
+            syncSliderWithInput('width', 'width-value');
+            syncSliderWithInput('height', 'height-value');
+
+            // Settings Dropdown Functions
+            function toggleSettingsDropdownSam() {
+                settingsDropdownContentSam.classList.toggle('show');
+                settingsDropdownButtonSam.classList.toggle('open'); // Toggle arrow direction
+            }
+
+            function toggleSettingsDropdownSched() {
+                settingsDropdownContentSched.classList.toggle('show');
+                settingsDropdownButtonSched.classList.toggle('open'); // Toggle arrow direction
+            }
+
+            function sampler(sampler) {
+                selectedSamplerSpan.textContent = sampler;
+                settingsDropdownContentSam.classList.remove('show'); // Close dropdown after selection
+                settingsDropdownButtonSam.classList.remove('open');
+                saveSettings(); // Save the selected sampler
+            }
+
+            function scheduler(scheduler) {
+                selectedSchedulerSpan.textContent = scheduler;
+                settingsDropdownContentSched.classList.remove('show'); // Close dropdown after selection
+                settingsDropdownButtonSched.classList.remove('open');
+                saveSettings(); // Save the selected scheduler
+            }
+
+
+            // Close settings dropdown if clicked outside
+            window.addEventListener('click', function(event) {
+                if (!settingsDropdownButtonSam.contains(event.target) && !settingsDropdownContentSam.contains(event.target)) {
+                    settingsDropdownContentSam.classList.remove('show');
+                    settingsDropdownButtonSam.classList.remove('open');
+                }
+            });
+            window.addEventListener('click', function(event) {
+                if (!settingsDropdownButtonSched.contains(event.target) && !settingsDropdownContentSched.contains(event.target)) {
+                    settingsDropdownContentSched.classList.remove('show');
+                    settingsDropdownButtonSched.classList.remove('open');
+                }
+            });
+            //aaa
+            updateGenerateButtonText(); // Initial button text update
+        </script>
+    </body>
+</html>
